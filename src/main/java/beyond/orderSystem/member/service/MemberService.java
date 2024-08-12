@@ -1,6 +1,7 @@
 package beyond.orderSystem.member.service;
 
 import beyond.orderSystem.member.domain.Member;
+import beyond.orderSystem.member.dto.MemberChangePasswordDto;
 import beyond.orderSystem.member.dto.MemberLoginDto;
 import beyond.orderSystem.member.dto.MemberResDto;
 import beyond.orderSystem.member.dto.MemberSaveReqDto;
@@ -32,6 +33,9 @@ public class MemberService {
         if(memberRepository.findByEmail(dto.getEmail()).isPresent()){
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
         }
+//        if(dto.getPassword().length() < 8){
+//            throw new IllegalArgumentException("비밀번호는 8자리 이상으로 설정해야합니다");
+//        }
 //        Member member = dto.toEntity();
 //        memberRepository.save(member);
         return memberRepository.save(dto.toEntity(passwordEncoder.encode(dto.getPassword())));
@@ -65,5 +69,16 @@ public class MemberService {
                 () -> new EntityNotFoundException("조회 실패")
         );
         return member.fromEntity();
+    }
+
+    public Member changePassword(MemberChangePasswordDto dto){
+        Member member = memberRepository.findByEmail(dto.getEmail()).orElseThrow(
+                ()-> new EntityNotFoundException("해당 이메일은 존재하지 않습니다"));
+        if(!passwordEncoder.matches(dto.getAsIsPassword(), member.getPassword())){
+            throw new IllegalArgumentException("비밀번호가 틀렸습니다.");
+        }
+        String newPassword = dto.getToBePassword();
+        member.changePassword(passwordEncoder.encode(newPassword));
+        return member;
     }
 }

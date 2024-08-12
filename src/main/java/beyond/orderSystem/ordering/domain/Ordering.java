@@ -59,6 +59,10 @@ public class Ordering {
         return orderListResDto;
     }
     public void orderCancel(){
+        List<OrderDetail> details = this.orderDetails;
+        for(OrderDetail o : details){
+            o.getProduct().increaseQuantity(o.getQuantity());
+        }
         this.orderStatus = OrderStatus.CANCELED;
     }
 }

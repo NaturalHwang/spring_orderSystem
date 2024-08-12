@@ -20,7 +20,7 @@ public class MemberSaveReqDto {
     @NotEmpty(message = "email is essential")
     private String email;
     @NotEmpty(message = "password is essential") // 특수문자 포함 여부 검색해보셈
-    @Size(min = 8, message = "password minimum length is 8")
+    @Size(min = 8, message = "비밀번호는 8자리 이상이어야합니다")
     private String password;
     private Address address; // 보낼 때 객체 안에 객체로 보내야됨.
 //    private String city;

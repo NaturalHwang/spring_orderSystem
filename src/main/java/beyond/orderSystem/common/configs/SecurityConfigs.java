@@ -26,7 +26,8 @@ public class SecurityConfigs {
                 .cors().and() //CORS 활성화
                 .httpBasic().disable() // 안넣어도 상관없을 덧?
                 .authorizeRequests()
-                    .antMatchers("/member/create", "/", "/doLogin", "/refresh-token")
+                    .antMatchers("/member/create", "/", "/doLogin", "/refresh-token", "/product/list",
+                            "/member/reset-password")
                     .permitAll()
                 .anyRequest().authenticated()
                 .and()

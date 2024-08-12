@@ -1,12 +1,15 @@
 package beyond.orderSystem.ordering.service;
 
+import beyond.orderSystem.common.service.StockInventoryService;
 import beyond.orderSystem.member.domain.Member;
 import beyond.orderSystem.member.repository.MemberRepository;
+import beyond.orderSystem.ordering.controller.SSEController;
 import beyond.orderSystem.ordering.domain.OrderDetail;
 import beyond.orderSystem.ordering.domain.OrderStatus;
 import beyond.orderSystem.ordering.domain.Ordering;
 import beyond.orderSystem.ordering.dto.OrderListResDto;
 import beyond.orderSystem.ordering.dto.OrderSaveReqDto;
+import beyond.orderSystem.ordering.dto.StockDecreaseEvent;
 import beyond.orderSystem.ordering.repository.OrderDetailRepository;
 import beyond.orderSystem.ordering.repository.OrderingRepository;
 import beyond.orderSystem.product.domain.Product;
@@ -27,18 +30,26 @@ public class OrderingService {
     private final MemberRepository memberRepository;
     private final ProductRepository productRepository;
     private final OrderDetailRepository orderDetailRepository;
-
+    private final StockInventoryService stockInventoryService;
+    private final StokDecreaseEventHandler stokDecreaseEventHandler;
+    private final SSEController sseController;
 
     @Autowired
     public OrderingService(OrderingRepository orderingRepository, MemberRepository memberRepository,
-                           ProductRepository productRepository, OrderDetailRepository orderDetailRepository){
+                           ProductRepository productRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StokDecreaseEventHandler stokDecreaseEventHandler, SSEController sseController){
         this.productRepository = productRepository;
         this.orderingRepository = orderingRepository;
         this.memberRepository = memberRepository;
         this.orderDetailRepository = orderDetailRepository;
+        this.stockInventoryService = stockInventoryService;
+        this.stokDecreaseEventHandler = stokDecreaseEventHandler;
+        this.sseController = sseController;
     }
 
 
+
+//    public synchronized Ordering orderCreate(List<OrderSaveReqDto> dto){ // 한번에 한 스레드만 실행하도록 설정
+//    synchronized를 설정한다 하더라도, 재고 감소가 DB에 반영되는 시점은 트랜잭션이 커밋되고 종료되는 시점
 //    방법1. JPA에 최적화된 방식
     public Ordering orderCreate(List<OrderSaveReqDto> dto){
 //        Member member = memberRepository.findById(dto.getMemberId()).orElseThrow(
@@ -58,10 +69,22 @@ public class OrderingService {
             Product product = productRepository.findById(orders.getProductId()).orElseThrow(
                     ()-> new EntityNotFoundException("product is not found"));
             int quantity = orders.getProductCount();
-            if(quantity > product.getStockQuantity()){
-                throw new IllegalArgumentException(product.getName() + "의 재고가 부족합니다. 현재 재고: " + product.getStockQuantity());
+            if(quantity == 0) throw new IllegalArgumentException("상품 수량을 반드시 선택해주세요");
+            if(product.getName().contains("sale")){
+//             redis를 통한 재고관리 및 재고잔량 확인 코드가 들어가야 되는 자리
+                int newQuantity = stockInventoryService.decreaseStock(product.getId(), quantity).intValue();
+                if(newQuantity < 0){
+                    throw new IllegalArgumentException("재고 부족");
+                }
+                stokDecreaseEventHandler.publish(
+                        new StockDecreaseEvent(product.getId(), orders.getProductCount()));
+//                rdb에 재고를 업데이트. rabbitmq를 통해 비동기적으로 이벤트 처리.
+            } else{
+                if(quantity > product.getStockQuantity()){
+                    throw new IllegalArgumentException(product.getName() + "의 재고가 부족합니다. 현재 재고: " + product.getStockQuantity());
+                }
+                product.updateQuantity(quantity); // 변경감지(dirty checking)로 인해 별도의 save 불필요
             }
-            product.updateQuantity(quantity); // 변경감지(dirty checking)로 인해 별도의 save 불필요
 
             OrderDetail orderDetail = OrderDetail.builder()
                     .product(product)
@@ -70,8 +93,8 @@ public class OrderingService {
                     .build();
             ordering.getOrderDetails().add(orderDetail);
         }
-
         Ordering savedOrdering = orderingRepository.save(ordering);
+        sseController.publishMessage(savedOrdering.fromEntity(), "admin@test.com");
         return savedOrdering;
     }
 
@@ -142,4 +165,6 @@ public class OrderingService {
         if(ordering.getOrderStatus().equals(OrderStatus.CANCELED)) throw new IllegalArgumentException ("이미 취소된 주문입니다");
         ordering.orderCancel();
     }
+
+
 }

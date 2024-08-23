@@ -9,7 +9,6 @@ import beyond.orderSystem.ordering.domain.OrderStatus;
 import beyond.orderSystem.ordering.domain.Ordering;
 import beyond.orderSystem.ordering.dto.OrderListResDto;
 import beyond.orderSystem.ordering.dto.OrderSaveReqDto;
-import beyond.orderSystem.ordering.dto.StockDecreaseEvent;
 import beyond.orderSystem.ordering.repository.OrderDetailRepository;
 import beyond.orderSystem.ordering.repository.OrderingRepository;
 import beyond.orderSystem.product.domain.Product;
@@ -31,18 +30,18 @@ public class OrderingService {
     private final ProductRepository productRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final StockInventoryService stockInventoryService;
-    private final StokDecreaseEventHandler stokDecreaseEventHandler;
+//    private final StokDecreaseEventHandler stokDecreaseEventHandler;
     private final SSEController sseController;
 
     @Autowired
     public OrderingService(OrderingRepository orderingRepository, MemberRepository memberRepository,
-                           ProductRepository productRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StokDecreaseEventHandler stokDecreaseEventHandler, SSEController sseController){
+                           ProductRepository productRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, /*StokDecreaseEventHandler stokDecreaseEventHandler, */SSEController sseController){
         this.productRepository = productRepository;
         this.orderingRepository = orderingRepository;
         this.memberRepository = memberRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.stockInventoryService = stockInventoryService;
-        this.stokDecreaseEventHandler = stokDecreaseEventHandler;
+//        this.stokDecreaseEventHandler = stokDecreaseEventHandler;
         this.sseController = sseController;
     }
 
@@ -76,8 +75,8 @@ public class OrderingService {
                 if(newQuantity < 0){
                     throw new IllegalArgumentException("재고 부족");
                 }
-                stokDecreaseEventHandler.publish(
-                        new StockDecreaseEvent(product.getId(), orders.getProductCount()));
+//                stokDecreaseEventHandler.publish(
+//                        new StockDecreaseEvent(product.getId(), orders.getProductCount()));
 //                rdb에 재고를 업데이트. rabbitmq를 통해 비동기적으로 이벤트 처리.
             } else{
                 if(quantity > product.getStockQuantity()){

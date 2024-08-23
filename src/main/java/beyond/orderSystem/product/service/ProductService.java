@@ -142,6 +142,10 @@ public class ProductService {
                     a -> a.bucket(bucket).key(fileName)).toExternalForm();
 
             product.updateImagePath(s3Path);
+            if(dto.getName().contains("sale")) {
+
+                stockInventoryService.increaseStock(product.getId(), dto.getStockQuantity());
+            }
         } catch (IOException e) {
             throw new RuntimeException("이미지를 불러올 수 없습니다.");
         }

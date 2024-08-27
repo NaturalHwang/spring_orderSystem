@@ -58,7 +58,7 @@ public class ProductService {
             byte[] bytes = image.getBytes();
 //            Path path = Paths.get("C:/Users/jungh/OneDrive/Desktop/class/tmp/",
 //                    UUID.randomUUID() + "_" + image.getOriginalFilename()); // 난수값이라 파일 이름이 복잡
-            Path path = Paths.get("C:/Users/jungh/OneDrive/Desktop/class/tmp/",
+            Path path = Paths.get("/tmp/",
                     product.getId() + "_" + image.getOriginalFilename());
             Files.write(path, bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
             product.updateImagePath(path.toString());
